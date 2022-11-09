@@ -24,7 +24,7 @@
 
 4. 打开 `/usr/themes/` 你的主题目录下 `comments.php` 文件，在提交按钮前面/后面插入下面代码：
 ```php
-<?php hCaptcha_Plugin::output(); ?>
+<?php if (array_key_exists('hCaptcha', Typecho_Plugin::export()['activated'])) : hCaptcha_Plugin::output(); endif; ?>
 ```
 
 5. 如果提交评论失败，可能是开启了评论反垃圾保护导致，在网站后台-设置-评论里关闭，或者在主题目录下的 `functions.php` 文件中找到 `function themeInit()` 函数，里面添加：
