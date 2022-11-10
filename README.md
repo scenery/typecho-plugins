@@ -28,7 +28,7 @@ $options = Helper::options();
 $options -> commentsAntiSpam = false;
 ```
 
-在[博客](https://atpx.com/typecho-hcaptcha-plugin/)中查看介绍。
+在[博客](https://atpx.com/typecho-captchaplus-plugin/)中查看介绍。
 
 ### Thanks
 - [reCAPTCHA](https://github.com/shuxiao9058/reCAPTCHA)
