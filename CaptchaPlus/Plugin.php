@@ -18,7 +18,7 @@
  */
 
 if (!defined('__TYPECHO_ROOT_DIR__')) {
-    exit;
+	exit;
 }
 
 use Typecho\Plugin\PluginInterface;
@@ -34,25 +34,28 @@ use Widget\Options;
 class CaptchaPlus_Plugin implements PluginInterface
 {
 
-    /**
-     * 激活插件方法,如果激活失败,直接抛出异常
-     */
-	public static function activate() {
+	/**
+	 * 激活插件方法,如果激活失败,直接抛出异常
+	 */
+	public static function activate()
+	{
 		\Typecho\Plugin::factory('Widget_Feedback')->comment = __CLASS__ . '::filter';
-    }
+	}
 
-    /**
-     * 禁用插件方法,如果禁用失败,直接抛出异常
-     */
+	/**
+	 * 禁用插件方法,如果禁用失败,直接抛出异常
+	 */
 	public static function deactivate()
-	{}
+	{
+	}
 
-    /**
-     * 获取插件配置面板
-     *
-     * @param Form $form
-     */
-	public static function config(Form $form) {
+	/**
+	 * 获取插件配置面板
+	 *
+	 * @param Form $form
+	 */
+	public static function config(Form $form)
+	{
 		$captcha_choose = new Radio('captcha_choose', array("hcaptcha" => "hCaptcha", "turnstile" => "Turnstile"), "hcaptcha", _t('验证工具'), _t('选择使用 hCpatcha 或者 Cloudflare Turnstile 验证'));
 		$form->addInput($captcha_choose);
 
@@ -66,45 +69,77 @@ class CaptchaPlus_Plugin implements PluginInterface
 		$form->addInput($widget_theme);
 
 		$widget_size = new Radio('widget_size', array("normal" => "常规", "compact" => "紧凑"), "normal", _t('样式'), _t('设置验证工具布局样式，默认为常规'));
-        $form->addInput($widget_size);
+		$form->addInput($widget_size);
 
-		$opt_noru = new Radio('opt_noru', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
-        _t('俄文评论操作'), _t('如果评论中包含俄文，则强行按该操作执行'));
-        $form->addInput($opt_noru);
-        
-        $opt_nocn = new Radio('opt_nocn', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "waiting",
-			_t('非中文评论操作'), _t('如果评论中不包含中文，则强行按该操作执行'));
-        $form->addInput($opt_nocn);
+		$opt_noru = new Radio(
+			'opt_noru',
+			array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"),
+			"abandon",
+			_t('俄文评论操作'),
+			_t('如果评论中包含俄文，则强行按该操作执行')
+		);
+		$form->addInput($opt_noru);
 
-		$opt_ban = new Radio('opt_ban', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "abandon",
-			_t('禁止词汇操作'), _t('如果评论中包含禁止词汇列表中的词汇，将执行该操作'));
-        $form->addInput($opt_ban);
+		$opt_nocn = new Radio(
+			'opt_nocn',
+			array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"),
+			"waiting",
+			_t('非中文评论操作'),
+			_t('如果评论中不包含中文，则强行按该操作执行')
+		);
+		$form->addInput($opt_nocn);
 
-        $words_ban = new Textarea('words_ban', NULL, "fuck\n傻逼\ncnm",
-			_t('禁止词汇'), _t('多条词汇请用换行符隔开'));
-        $form->addInput($words_ban);
+		$opt_ban = new Radio(
+			'opt_ban',
+			array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"),
+			"abandon",
+			_t('禁止词汇操作'),
+			_t('如果评论中包含禁止词汇列表中的词汇，将执行该操作')
+		);
+		$form->addInput($opt_ban);
 
-        $opt_chk = new Radio('opt_chk', array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"), "waiting",
-			_t('敏感词汇操作'), _t('如果评论中包含敏感词汇列表中的词汇，将执行该操作'));
-        $form->addInput($opt_chk);
+		$words_ban = new Textarea(
+			'words_ban',
+			NULL,
+			"fuck\n傻逼\ncnm",
+			_t('禁止词汇'),
+			_t('多条词汇请用换行符隔开')
+		);
+		$form->addInput($words_ban);
 
-        $words_chk = new Textarea('words_chk', NULL, "http://\nhttps://",
-			_t('敏感词汇'), _t('多条词汇请用换行符隔开<br />注意：如果词汇同时出现于禁止词汇，则执行禁止词汇操作'));
-        $form->addInput($words_chk);
+		$opt_chk = new Radio(
+			'opt_chk',
+			array("none" => "无动作", "waiting" => "标记为待审核", "spam" => "标记为垃圾", "abandon" => "评论失败"),
+			"waiting",
+			_t('敏感词汇操作'),
+			_t('如果评论中包含敏感词汇列表中的词汇，将执行该操作')
+		);
+		$form->addInput($opt_chk);
+
+		$words_chk = new Textarea(
+			'words_chk',
+			NULL,
+			"http://\nhttps://",
+			_t('敏感词汇'),
+			_t('多条词汇请用换行符隔开<br />注意：如果词汇同时出现于禁止词汇，则执行禁止词汇操作')
+		);
+		$form->addInput($words_chk);
 	}
 
-    /**
-     * 个人用户的配置面板
-     *
-     * @param Form $form
-     */
+	/**
+	 * 个人用户的配置面板
+	 *
+	 * @param Form $form
+	 */
 	public static function personalConfig(Form $form)
-	{}
+	{
+	}
 
 	/**
 	 * 显示 hCaptcha / Turnstile
 	 */
-	public static function output() {
+	public static function output()
+	{
 		$filter_set = Options::alloc()->plugin('CaptchaPlus');
 		$captcha_choose = $filter_set->captcha_choose;
 		$site_key = $filter_set->site_key;
@@ -120,16 +155,17 @@ class CaptchaPlus_Plugin implements PluginInterface
 			}
 			echo $script;
 		} else {
-		// throw new Exception(_t('Error, No hCaptcha Site/Secret Keys.'));
+			// throw new Exception(_t('Error, No hCaptcha Site/Secret Keys.'));
 		}
-  	}
+	}
 
-    /**
-     * 插件实现方法
-     *
-     * @access public
-     */
-	public static function filter($comment) {
+	/**
+	 * 插件实现方法
+	 *
+	 * @access public
+	 */
+	public static function filter($comment)
+	{
 		$filter_set = Options::alloc()->plugin('CaptchaPlus');
 		$user = Widget::widget('Widget_User');
 		$captcha_choose = $filter_set->captcha_choose;
@@ -142,16 +178,18 @@ class CaptchaPlus_Plugin implements PluginInterface
 			$post_token = $_POST['cf-turnstile-response'];
 			$url_path = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 		}
-		if($user->hasLogin() && $user->pass('administrator', true)) {
+		if ($user->hasLogin() && $user->pass('administrator', true)) {
 			return $comment;
-    		} elseif (isset($post_token)) {
+		} elseif (isset($post_token)) {
 			$postdata = array('secret' => $secret_key, 'response' => $post_token);
-			$options = array('http' => array(
-				'method' => 'POST',
-				'content' => http_build_query($postdata))
+			$options = array(
+				'http' => array(
+					'method' => 'POST',
+					'content' => http_build_query($postdata)
+				)
 			);
 			$context = stream_context_create($options);
-			$response =  file_get_contents($url_path, false, $context);
+			$response = file_get_contents($url_path, false, $context);
 			$response_data = json_decode($response);
 			if ($response_data->success == true) {
 				$opt = "none";
@@ -188,11 +226,9 @@ class CaptchaPlus_Plugin implements PluginInterface
 				if ($opt == "abandon") {
 					Cookie::set('__typecho_remember_text', $comment['text']);
 					throw new Exception($error);
-				}
-				elseif ($opt == "spam") {
+				} elseif ($opt == "spam") {
 					$comment['status'] = 'spam';
-				}
-				elseif ($opt == "waiting") {
+				} elseif ($opt == "waiting") {
 					$comment['status'] = 'waiting';
 				}
 				Cookie::delete('__typecho_remember_text');
@@ -202,13 +238,13 @@ class CaptchaPlus_Plugin implements PluginInterface
 			}
 		} else {
 			throw new Exception(_t('Could not connect to the service. Please check your internet connection and reload to get a captcha challenge.'));
-	  	}
-  	}
+		}
+	}
 
-     /**
-     * 检查 $str 中是否含有 $words_str 中的词汇
-     * 
-     */
+	/**
+	 * 检查 $str 中是否含有 $words_str 中的词汇
+	 * 
+	 */
 	private static function check_in($words_str, $str)
 	{
 		$words = explode("\n", $words_str);
@@ -216,9 +252,9 @@ class CaptchaPlus_Plugin implements PluginInterface
 			return false;
 		}
 		foreach ($words as $word) {
-            if (false !== strpos($str, trim($word))) {
-                return true;
-            }
+			if (false !== strpos($str, trim($word))) {
+				return true;
+			}
 		}
 		return false;
 	}
