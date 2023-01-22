@@ -1,11 +1,14 @@
 <?php
 /**
- * 评论设置 hCaptcha 验证并通过规则过滤
+ * 评论设置 hCaptcha / Turnstile 验证并通过规则过滤
  *
  * @package CaptchaPlus
  * @author ATP
- * @version 1.1.0
+ * @version 1.2.0
  * @link https://atpx.com
+ * 
+ * Version 1.2.0 (2023-01-22)
+ * 添加 Cloudflare Turnstile 验证
  * 
  * Version 1.1.0 (2022-11-10)
  * 添加评论语种过滤功能
@@ -50,7 +53,10 @@ class CaptchaPlus_Plugin implements PluginInterface
      * @param Form $form
      */
 	public static function config(Form $form) {
-		$site_key = new Text('site_key', NULL, '', _t('Site Key'), _t('需要注册 <a href="https://www.hcaptcha.com/" target="_blank">hCaptcha</a> 账号以获取 <b>site key</b> 和 <b>secret key</b>'));
+		$captcha_choose = new Radio('captcha_choose', array("hcaptcha" => "hCaptcha", "turnstile" => "Turnstile"), "hcaptcha", _t('验证工具'), _t('选择使用 hCpatcha 或者 Cloudflare Turnstile 验证'));
+		$form->addInput($captcha_choose);
+
+		$site_key = new Text('site_key', NULL, '', _t('Site Key'), _t('需要注册 <a href="https://www.hcaptcha.com/" target="_blank">hCaptcha</a> 或者 <a href="https://dash.cloudflare.com/sign-up" target="_blank">Cloudflare</a> 账号以获取 <b>site key</b> 和 <b>secret key</b>'));
 		$form->addInput($site_key);
 
 		$secret_key = new Text('secret_key', NULL, '', _t('Secret Key'), _t(''));
@@ -96,21 +102,29 @@ class CaptchaPlus_Plugin implements PluginInterface
 	{}
 
 	/**
-	 * 显示 hCaptcha
+	 * 显示 hCaptcha / Turnstile
 	 */
 	public static function output() {
-		$site_key = Options::alloc()->plugin('CaptchaPlus')->site_key;
-		$secret_key = Options::alloc()->plugin('CaptchaPlus')->secret_key;
-		$widget_theme = Options::alloc()->plugin('CaptchaPlus')->widget_theme;
-		$widget_size = Options::alloc()->plugin('CaptchaPlus')->widget_size;
+		$filter_set = Options::alloc()->plugin('CaptchaPlus');
+		$captcha_choose = $filter_set->captcha_choose;
+		$site_key = $filter_set->site_key;
+		$secret_key = $filter_set->secret_key;
+		$widget_theme = $filter_set->widget_theme;
+		$widget_size = $filter_set->widget_size;
+		$script = "";
 		if ($site_key != "" && $secret_key != "") {
-			echo '<script src="https://hcaptcha.com/1/api.js" async defer></script><div class="h-captcha" data-sitekey="' . $site_key . '" data-theme="' . $widget_theme . '" data-size="' . $widget_size . '"></div>';
+			if ($captcha_choose == "hcaptcha") {
+				$script = '<script src="https://hcaptcha.com/1/api.js" async defer></script><div class="h-captcha" data-sitekey="' . $site_key . '" data-theme="' . $widget_theme . '" data-size="' . $widget_size . '"></div>';
+			} else {
+				$script = '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script><div class="cf-turnstile" data-sitekey="' . $site_key . '" data-theme="' . $widget_theme . '" data-size="' . $widget_size . '"></div>';
+			}
+			echo $script;
 		} else {
 		// throw new Exception(_t('Error, No hCaptcha Site/Secret Keys.'));
 		}
   	}
 
-	/**
+    /**
      * 插件实现方法
      *
      * @access public
@@ -118,20 +132,27 @@ class CaptchaPlus_Plugin implements PluginInterface
 	public static function filter($comment) {
 		$filter_set = Options::alloc()->plugin('CaptchaPlus');
 		$user = Widget::widget('Widget_User');
-		function commentFilter($comment){
-
+		$captcha_choose = $filter_set->captcha_choose;
+		$secret_key = $filter_set->secret_key;
+		$post_token = "";
+		if ($captcha_choose == "hcaptcha") {
+			$post_token = $_POST['h-captcha-response'];
+			$url_path = "https://hcaptcha.com/siteverify";
+		} else {
+			$post_token = $_POST['cf-turnstile-response'];
+			$url_path = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 		}
 		if($user->hasLogin() && $user->pass('administrator', true)) {
 			return $comment;
-    	} elseif (isset($_POST['h-captcha-response'])) {
-			$site_key = $filter_set->site_key;
-			$secret_key = $filter_set->secret_key;
-			function getCaptcha($hcaptcha_response, $secret_key) {
-				$response = file_get_contents("https://hcaptcha.com/siteverify?secret=".$secret_key."&response=".$hcaptcha_response);
-				$response = json_decode($response);
-				return $response;
-			}
-			$response_data = getCaptcha($_POST['h-captcha-response'], $secret_key);
+    		} elseif (isset($post_token)) {
+			$postdata = array('secret' => $secret_key, 'response' => $post_token);
+			$options = array('http' => array(
+				'method' => 'POST',
+				'content' => http_build_query($postdata))
+			);
+			$context = stream_context_create($options);
+			$response =  file_get_contents($url_path, false, $context);
+			$response_data = json_decode($response);
 			if ($response_data->success == true) {
 				$opt = "none";
 				$error = "";
@@ -152,7 +173,7 @@ class CaptchaPlus_Plugin implements PluginInterface
 				// 禁止词汇处理
 				if ($opt == "none" && $filter_set->opt_ban != "none") {
 					if (CaptchaPlus_Plugin::check_in($filter_set->words_ban, $comment['text'])) {
-						$error = "Language, plz :)";
+						$error = "More friendly, plz :)";
 						$opt = $filter_set->opt_ban;
 					}
 				}
@@ -177,14 +198,14 @@ class CaptchaPlus_Plugin implements PluginInterface
 				Cookie::delete('__typecho_remember_text');
 				return $comment;
 			} else {
-				throw new Exception(_t('hCaptcha verification failed. Please try again.'));
+				throw new Exception(_t('Captcha verification failed. Please try again.'));
 			}
 		} else {
-			throw new Exception(_t('Could not connect to the hCaptcha service. Please check your internet connection and reload to get a hCaptcha challenge.'));
+			throw new Exception(_t('Could not connect to the service. Please check your internet connection and reload to get a captcha challenge.'));
 	  	}
   	}
 
-	/**
+     /**
      * 检查 $str 中是否含有 $words_str 中的词汇
      * 
      */
