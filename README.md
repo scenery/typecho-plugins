@@ -9,9 +9,15 @@ Typecho plugins
 
 ## CaptchaPlus
 
+_**Update 2023-01-22**_
+
+添加 [Cloudflare Turnstile](https://www.cloudflare-cn.com/products/turnstile/) 验证工具支持。
+
+---
+
 **Typecho 版本：>= 1.2.0**
 
-1. 注册 [hCaptcha](https://www.hcaptcha.com/signup-interstitial) 账号，在 Sites 菜单栏里点击 `New Site` 添加一个网站获取 `Site Key`，点击你的头像 - Settings 获取 `Secret Key`；
+1. 注册 [hCaptcha](https://www.hcaptcha.com/signup-interstitial) 或者 [Cloudflare](https://dash.cloudflare.com/sign-up) 账号，在 Sites 菜单栏里点击 `New Site` 添加一个网站获取 `Site Key`，点击你的头像 - Settings 获取 `Secret Key`；
   
 2. 下载插件，文件夹命名为 `CaptchaPlus` 上传到 Typecho 网站目录 `/usr/plugins/` 路径下；
 
@@ -28,7 +34,7 @@ $options = Helper::options();
 $options -> commentsAntiSpam = false;
 ```
 
-在[博客](https://atpx.com/typecho-captchaplus-plugin/)中查看介绍。
+在[我的博客](https://atpx.com/typecho-captchaplus-plugin/)中查看更详细的介绍。
 
 ### Thanks
 - [reCAPTCHA](https://github.com/shuxiao9058/reCAPTCHA)
